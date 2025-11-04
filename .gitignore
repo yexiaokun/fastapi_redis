@@ -1,0 +1,7 @@
+.pyc
+
+fastapi_redis
+
+.env
+
+__pycache__

@@ -3,6 +3,8 @@ from app.auth import get_current_user
 from app.models.post import PostCreate, PostInDB
 from app.database import db
 from bson import ObjectId
+from typing import List
+
 
 
 router = APIRouter(
@@ -10,17 +12,21 @@ router = APIRouter(
     tags=["Posts"]
 )
 
-@router.get("/")
-def get_posts():
-    return {"message": "获取文章列表"}
+@router.get("/",response_model=List[PostInDB], summary="获取所有文章")
+async def get_posts():
+    posts_cursor = db.posts.find({})
+    posts = await posts_cursor.to_list(length=None)
+    return [PostInDB(**post) for post in posts]
 
 @router.get("/{post_id}")
 def get_post(post_id: int):
     return {"message": f"获取文章 {post_id} 的内容"}
 
-@router.get("/user/me")
+@router.get("/user/me",response_model=List[PostInDB], summary="获取当前用户的文章")
 async def get_my_posts(current_user: dict = Depends(get_current_user)):
-    return {"msg": f"你好，{current_user['username']}！这是你的专属空间。"}
+    posts_cursor = db.posts.find({"author_id": current_user["_id"]})
+    posts = await posts_cursor.to_list(length=None)
+    return [PostInDB(**post) for post in posts]
 
 
 @router.post("/", response_model=PostInDB, summary="创建文章")

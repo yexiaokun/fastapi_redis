@@ -34,7 +34,7 @@ async def create_post(post: PostCreate, current_user: dict = Depends(get_current
     result = await db.posts.insert_one(new_post)
 
     created_post = await db.posts.find_one({"_id": result.inserted_id})
-    if not create_post:
+    if not created_post:
         raise HTTPException(status_code=500, detail="文章创建失败")
     
     return PostInDB(**created_post)

@@ -8,17 +8,25 @@ from pydantic_core import core_schema
 
 class PyObjectId(ObjectId):
     @classmethod
+    def validate(cls, v: Any) -> ObjectId:
+        if isinstance(v, ObjectId):  # 如果已经是 ObjectId，直接返回
+            return v
+        if isinstance(v, str):       # 如果是字符串，验证并转换
+            if ObjectId.is_valid(v):
+                return ObjectId(v)
+            else:
+                raise ValueError("Invalid ObjectId string")
+        raise ValueError("Invalid ObjectId")
+
+    @classmethod
     def __get_pydantic_core_schema__(cls, source, handler):
         return core_schema.no_info_before_validator_function(
             cls.validate,
-            core_schema.str_schema()
+            core_schema.union_schema([  # 允许 str 或 ObjectId
+                core_schema.str_schema(),
+                core_schema.is_instance_schema(ObjectId)
+            ])
         )
-
-    @classmethod
-    def validate(cls, v: Any) -> ObjectId:
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid ObjectId")
-        return ObjectId(v)
     
 
     @classmethod
@@ -36,10 +44,10 @@ class PostCreate(BaseModel):
 
 
 class PostInDB(BaseModel):
-    _id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     title: str
     content: str
-    author_id: str
+    author_id: PyObjectId
 
     model_config = {
         "populate_by_name": True,
